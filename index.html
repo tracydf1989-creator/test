@@ -1,0 +1,561 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;600;700;900&family=ZCOOL+XiaoWei&display=swap");
+*, ::before, ::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --gold: #c5a05e; --gold-light: #dfc68a; --gold-dark: #8b6914; --crimson: #8b2500; --crimson-deep: #5c1a0a; --ivory: #f5efe0; --ivory-dark: #e8dcc8; --brown: #4a3728; --brown-light: #6b5344; --paper: #f0e6d0; --paper-dark: #d9cbb0; --ink: #2c1810; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body { font-family: "Noto Serif SC", "Songti SC", SimSun, serif; background: var(--ivory); color: var(--ink); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+.envelope-wrapper { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: radial-gradient(rgb(44, 24, 16) 0%, rgb(13, 8, 4) 100%); transition: opacity 0.8s, visibility 0.8s; }
+.envelope-wrapper.opened { opacity: 0; visibility: hidden; pointer-events: none; }
+.envelope { position: relative; width: 300px; height: 200px; cursor: pointer; clip-path: inset(-300px -50px -50px); transition: clip-path linear 0.6s; }
+.envelope.open { clip-path: inset(-400px -50px -50px); }
+.envelope-body { position: absolute; inset: 0; background: linear-gradient(160deg, rgb(192, 57, 43) 0%, rgb(160, 32, 24) 50%, rgb(139, 26, 16) 100%); border-radius: 6px; box-shadow: rgba(0, 0, 0, 0.5) 0px 8px 32px; z-index: 3; }
+.envelope-body::before { content: ""; position: absolute; inset: 8px; border: 1px solid rgba(197, 160, 94, 0.3); border-radius: 3px; pointer-events: none; }
+.envelope-body::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(197, 160, 94, 0.05) 10px, rgba(197, 160, 94, 0.05) 11px); border-radius: 6px; pointer-events: none; }
+.envelope-flap { position: absolute; top: 0; left: 0; width: 100%; height: 100px; transform-origin: center top; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); z-index: 5; }
+.envelope-flap-inner { width: 100%; height: 100%; background: linear-gradient(rgb(139, 26, 16) 0%, rgb(160, 32, 24) 40%, rgb(192, 57, 43) 100%); clip-path: polygon(0 0, 50% 100%, 100% 0); }
+.envelope-flap-inner::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(0, 0, 0, 0.1) 0%, transparent 40%); clip-path: polygon(0 0, 50% 100%, 100% 0); }
+.envelope.open .envelope-flap { transform: rotateX(180deg); }
+.envelope-seal { position: absolute; top: 32px; left: 50%; transform: translateX(-50%); width: 48px; height: 48px; background: radial-gradient(circle, var(--gold) 0%, var(--gold-dark) 100%); border-radius: 50%; z-index: 6; display: flex; align-items: center; justify-content: center; box-shadow: rgba(0, 0, 0, 0.4) 0px 2px 8px, rgba(255, 255, 255, 0.2) 0px 1px 2px inset; transition: transform 0.5s 0.2s, opacity 0.5s 0.2s; }
+.envelope.open .envelope-seal { transform: translateX(-50%) scale(0); opacity: 0; }
+.envelope-seal span { font-family: "Ma Shan Zheng", cursive; font-size: 20px; color: var(--crimson-deep); text-shadow: rgba(255, 255, 255, 0.2) 0px 1px 1px; }
+.envelope-card { position: absolute; top: 40px; left: 50%; transform: translateX(-50%) translateY(0); width: 260px; height: 140px; background: var(--ivory); border-radius: 2px; z-index: 2; transition: transform 1.4s cubic-bezier(0.22, 1, 0.36, 1) 0.6s, z-index linear 0.6s; display: flex; align-items: center; justify-content: center; box-shadow: rgba(0, 0, 0, 0.15) 0px 2px 12px; }
+.envelope.open .envelope-card { transform: translateX(-50%) translateY(-240px); z-index: 10; }
+.envelope-card-text { font-family: "Ma Shan Zheng", cursive; font-size: 28px; color: var(--crimson); letter-spacing: 12px; text-indent: 12px; }
+.envelope-hint { position: absolute; bottom: -50px; left: 50%; transform: translateX(-50%); font-family: "ZCOOL XiaoWei", serif; font-size: 13px; color: var(--gold); letter-spacing: 4px; opacity: 0.7; animation: hintPulse 2s ease-in-out infinite; }
+@keyframes hintPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.9; } }
+
+.invitation { max-width: 520px; margin: 0 auto; min-height: 100vh; position: relative; opacity: 0; transition: opacity 1s 0.5s; }
+.invitation.visible { opacity: 1; }
+.invitation::before { content: ""; position: fixed; inset: 0; z-index: -2; background: url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E"), linear-gradient(180deg, var(--ivory) 0%, var(--ivory) 30%, var(--paper) 70%, var(--ivory-dark) 100%); }
+.invitation::after { content: ""; position: fixed; inset: 0; z-index: -1; background: radial-gradient(at 50% 0%, rgba(197, 160, 94, 0.08) 0%, transparent 60%), radial-gradient(at 50% 100%, rgba(139, 37, 0, 0.05) 0%, transparent 50%); pointer-events: none; }
+
+.top-ornament { padding: 40px 20px 0; text-align: center; opacity: 0; transform: translateY(-20px); transition: 1s; }
+.top-ornament.animate { opacity: 1; transform: translateY(0); }
+.ornament-line { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 16px; }
+.ornament-line .line { width: 60px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+.ornament-line .diamond { width: 8px; height: 8px; background: var(--gold); transform: rotate(45deg); }
+
+.corner-frame { position: relative; padding: 30px 24px; margin: 0 16px; }
+.corner-frame::before, .corner-frame::after { content: ""; position: absolute; width: 40px; height: 40px; border-color: var(--gold); border-style: solid; }
+.corner-frame::before { top: 0; left: 0; border-width: 2px 0 0 2px; }
+.corner-frame::after { top: 0; right: 0; border-width: 2px 2px 0 0; }
+.corner-frame .bottom-corners::before, .corner-frame .bottom-corners::after { content: ""; position: absolute; width: 40px; height: 40px; border-color: var(--gold); border-style: solid; }
+.corner-frame .bottom-corners::before { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+.corner-frame .bottom-corners::after { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+.inner-border { position: absolute; inset: 8px; border: 1px solid rgba(197, 160, 94, 0.25); pointer-events: none; }
+
+.header-section { text-align: center; padding: 20px 0 10px; opacity: 0; transform: scale(0.9); transition: 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
+.header-section.animate { opacity: 1; transform: scale(1); }
+.xi-tie { display: inline-flex; gap: 0; position: relative; }
+.xi-tie-char { font-family: "Ma Shan Zheng", cursive; font-size: 72px; color: var(--crimson); line-height: 1; text-shadow: rgba(139, 37, 0, 0.15) 2px 2px 0; position: relative; }
+.xi-tie-char::after { content: ""; position: absolute; bottom: -4px; left: 10%; right: 10%; height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+.header-subtitle { margin-top: 16px; font-family: "ZCOOL XiaoWei", serif; font-size: 13px; color: var(--brown-light); letter-spacing: 6px; text-indent: 6px; }
+
+.divider { display: flex; align-items: center; justify-content: center; padding: 20px 40px; gap: 10px; opacity: 0; transition: opacity 1s; }
+.divider.animate { opacity: 1; }
+.divider .wing { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold-light), transparent); }
+.divider .center-icon { color: var(--gold); font-size: 16px; line-height: 1; }
+
+.photo-section { padding: 10px 20px 20px; text-align: center; opacity: 0; transform: translateY(30px); transition: 1.2s; }
+.photo-section.animate { opacity: 1; transform: translateY(0); }
+.photo-frame-wrapper { position: relative; display: inline-block; }
+.photo-frame { width: 220px; height: 300px; border-radius: 50% / 40%; overflow: hidden; position: relative; border: 3px solid var(--gold); box-shadow: 0 0 0 6px var(--ivory), 0 0 0 8px var(--gold-light), 0 0 0 14px var(--ivory), 0 0 0 15px rgba(197,160,94,0.3), 0 8px 30px rgba(0,0,0,0.15); }
+.photo-frame .slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s ease-in-out; }
+.photo-frame .slide.active { opacity: 1; }
+.photo-frame .slide img { width: 100%; height: 100%; object-fit: cover; }
+.slide-dots { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
+.slide-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--paper-dark); border: 1px solid var(--gold-light); cursor: pointer; transition: 0.4s; }
+.slide-dot.active { background: var(--gold); border-color: var(--gold); transform: scale(1.2); }
+
+.gallery-section { padding: 10px 20px 20px; opacity: 0; transform: translateY(20px); transition: 1s; }
+.gallery-section.animate { opacity: 1; transform: translateY(0); }
+.gallery-title { text-align: center; margin-bottom: 18px; }
+.gallery-title-text { font-family: "ZCOOL XiaoWei", serif; font-size: 13px; color: var(--brown-light); letter-spacing: 6px; text-indent: 6px; }
+.gallery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gallery-item { position: relative; overflow: hidden; border: 2px solid var(--gold-light); background: linear-gradient(135deg, var(--paper-dark) 0%, var(--ivory-dark) 100%); cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; }
+.gallery-item:hover { transform: scale(1.02); box-shadow: rgba(0, 0, 0, 0.12) 0px 4px 16px; }
+.gallery-item:nth-child(1) { grid-row: 1 / 3; border-radius: 4px 4px 4px 40%; min-height: 240px; }
+.gallery-item:nth-child(2) { border-radius: 4px 40% 4px 4px; min-height: 115px; }
+.gallery-item:nth-child(3) { border-radius: 40% 4px 4px; min-height: 115px; }
+.gallery-item:nth-child(4) { grid-column: 1 / 3; border-radius: 4px; min-height: 160px; }
+.gallery-item:nth-child(5) { border-radius: 4px 4px 40%; min-height: 130px; }
+.gallery-item:nth-child(6) { border-radius: 4px 4px 4px 40%; min-height: 130px; }
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery-item:nth-child(4) img { object-position: center 45%; }
+
+.lightbox { position: fixed; inset: 0; z-index: 10000; background: rgba(13, 8, 4, 0.92); display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.4s; cursor: pointer; }
+.lightbox.show { opacity: 1; visibility: visible; }
+.lightbox img { max-width: 90vw; max-height: 85vh; object-fit: contain; border: 3px solid var(--gold); box-shadow: rgba(0, 0, 0, 0.5) 0px 0px 40px; border-radius: 4px; }
+.lightbox-close { position: absolute; top: 20px; right: 20px; width: 36px; height: 36px; border: 1px solid var(--gold-light); border-radius: 50%; background: rgba(44, 24, 16, 0.6); color: var(--gold); font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+.names-section { text-align: center; padding: 20px 20px 10px; opacity: 0; transform: translateY(20px); transition: 1s; }
+.names-section.animate { opacity: 1; transform: translateY(0); }
+.names-vertical { display: inline-flex; align-items: center; justify-content: center; gap: 24px; }
+.name-col { writing-mode: vertical-rl; font-family: "Ma Shan Zheng", cursive; font-size: 42px; color: var(--ink); letter-spacing: 8px; line-height: 1.2; }
+.name-connector { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.name-connector .and-char { font-family: "Ma Shan Zheng", cursive; font-size: 20px; color: var(--crimson); }
+.name-connector .heart-line { width: 1px; height: 20px; background: linear-gradient(180deg, transparent, var(--gold), transparent); }
+.names-subtitle { margin-top: 16px; font-family: "ZCOOL XiaoWei", serif; font-size: 14px; color: var(--brown-light); letter-spacing: 4px; }
+
+.details-section { padding: 20px 30px; opacity: 0; transform: translateY(20px); transition: 1s; }
+.details-section.animate { opacity: 1; transform: translateY(0); }
+.details-card { position: relative; background: linear-gradient(135deg, rgba(197, 160, 94, 0.06) 0%, rgba(245, 239, 224, 0.5) 50%, rgba(197, 160, 94, 0.06) 100%); border: 1px solid rgba(197, 160, 94, 0.3); border-radius: 4px; padding: 28px 20px; }
+.details-card::before { content: ""; position: absolute; inset: 4px; border: 1px solid rgba(197, 160, 94, 0.12); border-radius: 2px; pointer-events: none; }
+.detail-row { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+.detail-row:last-child { margin-bottom: 0; }
+.detail-icon { flex-shrink: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gold-light); border-radius: 50%; font-size: 14px; color: var(--gold-dark); background: rgba(197, 160, 94, 0.06); }
+.detail-content { flex: 1; }
+.detail-label { font-family: "ZCOOL XiaoWei", serif; font-size: 12px; color: var(--brown-light); letter-spacing: 3px; margin-bottom: 4px; }
+.detail-value { font-family: "Noto Serif SC", serif; font-size: 15px; color: var(--ink); font-weight: 600; line-height: 1.6; }
+.detail-value .sub { font-size: 13px; font-weight: 400; color: var(--brown-light); }
+
+.countdown-section { padding: 20px 30px 30px; text-align: center; opacity: 0; transform: translateY(20px); transition: 1s; }
+.countdown-section.animate { opacity: 1; transform: translateY(0); }
+.countdown-label { font-family: "ZCOOL XiaoWei", serif; font-size: 13px; color: var(--brown-light); letter-spacing: 6px; text-indent: 6px; margin-bottom: 16px; }
+.countdown-boxes { display: flex; justify-content: center; gap: 12px; }
+.countdown-box { width: 64px; text-align: center; position: relative; }
+.countdown-num { font-family: "Noto Serif SC", serif; font-size: 36px; font-weight: 900; color: var(--crimson); line-height: 1; text-shadow: rgba(139, 37, 0, 0.1) 1px 1px 0; }
+.countdown-unit { font-family: "ZCOOL XiaoWei", serif; font-size: 11px; color: var(--brown-light); margin-top: 6px; letter-spacing: 2px; }
+.countdown-box + .countdown-box::before { content: ":"; position: absolute; left: -10px; top: 4px; font-family: "Noto Serif SC", serif; font-size: 24px; font-weight: 700; color: var(--gold); }
+
+.message-section { padding: 10px 40px 20px; text-align: center; opacity: 0; transition: 1s; }
+.message-section.animate { opacity: 1; }
+.message-text { font-family: "ZCOOL XiaoWei", serif; font-size: 14px; color: var(--brown); line-height: 2.2; letter-spacing: 1px; }
+
+.footer-section { padding: 20px 20px 50px; text-align: center; opacity: 0; transform: translateY(20px); transition: 1s; }
+.footer-section.animate { opacity: 1; transform: translateY(0); }
+.footer-welcome { font-family: "Ma Shan Zheng", cursive; font-size: 36px; color: var(--gold-dark); letter-spacing: 12px; text-indent: 12px; position: relative; display: inline-block; }
+.footer-welcome::before, .footer-welcome::after { content: "\2014"; position: absolute; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--gold-light); }
+.footer-welcome::before { right: calc(100% + 16px); }
+.footer-welcome::after { left: calc(100% + 16px); }
+.footer-names { margin-top: 14px; font-family: "ZCOOL XiaoWei", serif; font-size: 13px; color: var(--brown-light); letter-spacing: 4px; }
+
+.floating-petals { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.petal { position: absolute; opacity: 0; animation: petalFall linear infinite; }
+@keyframes petalFall { 0% { transform: translateY(-20px) rotate(0deg) translateX(0); opacity: 0; } 10% { opacity: 0.6; } 90% { opacity: 0.4; } 100% { transform: translateY(100vh) rotate(360deg) translateX(80px); opacity: 0; } }
+
+.gold-shimmer { animation: shimmer 3s ease-in-out infinite; }
+@keyframes shimmer { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.7; } }
+
+/* Music button */
+.music-btn { position: fixed; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: 50%; background: rgba(197, 160, 94, 0.15); border: 1px solid var(--gold-light); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9998; transition: 0.3s; backdrop-filter: blur(8px); }
+.music-btn:hover { background: rgba(197, 160, 94, 0.3); }
+.music-btn svg { width: 18px; height: 18px; fill: var(--gold-dark); }
+.music-btn.playing { animation: musicRotate 3s linear infinite; }
+@keyframes musicRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+@media (max-width: 380px) {
+  .xi-tie-char { font-size: 56px; }
+  .name-col { font-size: 34px; }
+  .photo-frame { width: 180px; height: 250px; }
+  .countdown-box { width: 54px; }
+  .countdown-num { font-size: 28px; }
+  .corner-frame { margin: 0 8px; padding: 24px 16px; }
+  .details-section { padding: 20px 16px; }
+  .gallery-section { padding: 10px 12px 20px; }
+  .gallery-item:nth-child(1) { min-height: 200px; }
+  .gallery-item:nth-child(4) { min-height: 130px; }
+}
+@media (min-width: 520px) {
+  .photo-frame { width: 250px; height: 340px; }
+  .corner-frame { margin: 0 30px; }
+  .gallery-item:nth-child(1) { min-height: 280px; }
+  .gallery-item:nth-child(4) { min-height: 200px; }
+}
+</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>婚礼邀请函</title>
+<meta property="og:title" content="婚礼邀请函" />
+<meta property="og:description" content="诚邀您见证我们的幸福时刻" />
+<meta property="og:type" content="website" />
+</head>
+<body>
+<!-- Background Music -->
+<audio id="bgMusic" loop preload="auto">
+  <source src="bgmusic.mp3" type="audio/mpeg">
+</audio>
+
+<!-- Music Button -->
+<div class="music-btn" id="musicBtn" title="背景音乐">
+  <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+</div>
+
+<!-- Floating Petals -->
+<div class="floating-petals" id="petals"></div>
+
+<!-- Envelope Animation -->
+<div class="envelope-wrapper" id="envelopeWrapper">
+  <div class="envelope" id="envelope">
+    <div class="envelope-flap">
+      <div class="envelope-flap-inner"></div>
+    </div>
+    <div class="envelope-seal"><span>囍</span></div>
+    <div class="envelope-body"></div>
+    <div class="envelope-card" id="envelopeCard">
+      <div class="envelope-card-text">喜帖</div>
+    </div>
+    <div class="envelope-hint">轻触开启</div>
+  </div>
+</div>
+
+<!-- Main Invitation -->
+<div class="invitation" id="invitation">
+
+  <!-- Top Ornament -->
+  <div class="top-ornament" data-animate>
+    <div class="ornament-line">
+      <div class="line"></div>
+      <div class="diamond gold-shimmer"></div>
+      <div class="line"></div>
+    </div>
+  </div>
+
+  <!-- Corner Frame wrapping main content -->
+  <div class="corner-frame">
+    <div class="bottom-corners"></div>
+    <div class="inner-border"></div>
+
+    <!-- Header -->
+    <div class="header-section" data-animate>
+      <div class="xi-tie">
+        <span class="xi-tie-char">喜</span>
+        <span class="xi-tie-char">帖</span>
+      </div>
+      <div class="header-subtitle">谨定于良辰吉日</div>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider" data-animate>
+      <div class="wing"></div>
+      <div class="center-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.435c-1.989-5.399-12-4.597-12 3.568 0 4.068 3.06 9.014 12 14.997 8.94-5.983 12-10.929 12-14.997 0-8.118-10-8.999-12-3.568z"></path></svg>
+      </div>
+      <div class="wing"></div>
+    </div>
+
+    <!-- Hero Photo Slideshow -->
+    <div class="photo-section" data-animate>
+      <div class="photo-frame-wrapper">
+        <div class="photo-frame" id="photoFrame">
+          <div class="slide active">
+            <img src="https://pskyu6c3.mule.page/photos/hero1.jpg" alt="婚纱照" style="object-position: center 20%;">
+          </div>
+          <div class="slide">
+            <img src="https://pskyu6c3.mule.page/photos/hero2.jpg" alt="婚纱照" style="object-position: center 30%;">
+          </div>
+          <div class="slide">
+            <img src="https://pskyu6c3.mule.page/photos/hero3.jpg" alt="婚纱照" style="object-position: center 35%;">
+          </div>
+          <div class="slide">
+            <img src="https://pskyu6c3.mule.page/photos/hero4.jpg" alt="婚纱照" style="object-position: center 25%;">
+          </div>
+          <div class="slide">
+            <img src="https://pskyu6c3.mule.page/photos/hero5.jpg" alt="婚纱照" style="object-position: center 40%;">
+          </div>
+        </div>
+      </div>
+      <div class="slide-dots" id="slideDots">
+        <div class="slide-dot active"></div>
+        <div class="slide-dot"></div>
+        <div class="slide-dot"></div>
+        <div class="slide-dot"></div>
+        <div class="slide-dot"></div>
+      </div>
+    </div>
+
+    <!-- Names -->
+    <div class="names-section" data-animate>
+      <div class="names-vertical">
+        <div class="name-col">耿世豪</div>
+        <div class="name-connector">
+          <div class="heart-line"></div>
+          <div class="and-char">&amp;</div>
+          <div class="heart-line"></div>
+        </div>
+        <div class="name-col">丁凡</div>
+      </div>
+      <div class="names-subtitle">携手共结连理</div>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider" data-animate>
+      <div class="wing"></div>
+      <div class="center-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20M2 12h20"></path></svg>
+      </div>
+      <div class="wing"></div>
+    </div>
+
+    <!-- Photo Gallery -->
+    <div class="gallery-section" data-animate>
+      <div class="gallery-title">
+        <div class="gallery-title-text">甜蜜瞬间</div>
+      </div>
+      <div class="gallery-grid">
+        <div class="gallery-item">
+          <img src="https://pskyu6c3.mule.page/photos/gallery1.jpg" alt="婚纱照" style="object-position: center 15%;">
+        </div>
+        <div class="gallery-item">
+          <img src="https://pskyu6c3.mule.page/photos/gallery2.jpg" alt="婚纱照" style="object-position: center 30%;">
+        </div>
+        <div class="gallery-item">
+          <img src="https://pskyu6c3.mule.page/photos/gallery3.jpg" alt="婚纱照" style="object-position: center 35%;">
+        </div>
+        <div class="gallery-item">
+          <img src="https://pskyu6c3.mule.page/photos/gallery4.jpg" alt="婚纱照" style="object-position: center 40%;">
+        </div>
+        <div class="gallery-item">
+          <img src="https://pskyu6c3.mule.page/photos/gallery5.jpg" alt="婚纱照" style="object-position: center 20%;">
+        </div>
+        <div class="gallery-item">
+          <img src="https://pskyu6c3.mule.page/photos/gallery6.jpg" alt="婚纱照" style="object-position: center 25%;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Details -->
+    <div class="details-section" data-animate>
+      <div class="details-card">
+        <div class="detail-row">
+          <div class="detail-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"></path></svg>
+          </div>
+          <div class="detail-content">
+            <div class="detail-label">吉日</div>
+            <div class="detail-value">
+              公历二零二六年五月三十日
+              <br><span class="sub">农历丙午年四月十四 星期六</span>
+            </div>
+          </div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"></path></svg>
+          </div>
+          <div class="detail-content">
+            <div class="detail-label">地点</div>
+            <div class="detail-value">
+              盛世川王·幸福里（十里店）
+              <br><span class="sub">濂溪区十里大道108号（近上海路步行街）</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Countdown -->
+    <div class="countdown-section" data-animate>
+      <div class="countdown-label">距离婚礼</div>
+      <div class="countdown-boxes" id="countdown">
+        <div class="countdown-box">
+          <div class="countdown-num" id="cd-days">00</div>
+          <div class="countdown-unit">天</div>
+        </div>
+        <div class="countdown-box">
+          <div class="countdown-num" id="cd-hours">00</div>
+          <div class="countdown-unit">时</div>
+        </div>
+        <div class="countdown-box">
+          <div class="countdown-num" id="cd-mins">00</div>
+          <div class="countdown-unit">分</div>
+        </div>
+        <div class="countdown-box">
+          <div class="countdown-num" id="cd-secs">00</div>
+          <div class="countdown-unit">秒</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message -->
+    <div class="message-section" data-animate>
+      <div class="message-text">
+        佳期已定 良缘天成<br>
+        谨备薄酒 恭候尊驾
+      </div>
+    </div>
+
+  </div><!-- end corner-frame -->
+
+  <!-- Footer -->
+  <div class="footer-section" data-animate>
+    <div class="footer-welcome">恭候光临</div>
+    <div class="footer-names">耿世豪 &amp; 丁凡 敬邀</div>
+  </div>
+
+  <!-- Bottom Ornament -->
+  <div class="top-ornament" data-animate style="padding: 0 20px 40px;">
+    <div class="ornament-line">
+      <div class="line"></div>
+      <div class="diamond gold-shimmer"></div>
+      <div class="line"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-close">×</div>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<script>
+// ===== Background Music =====
+const bgMusic = document.getElementById('bgMusic');
+const musicBtn = document.getElementById('musicBtn');
+let musicPlaying = false;
+
+function toggleMusic() {
+  if (musicPlaying) {
+    bgMusic.pause();
+    musicBtn.classList.remove('playing');
+  } else {
+    bgMusic.play();
+    musicBtn.classList.add('playing');
+  }
+  musicPlaying = !musicPlaying;
+}
+musicBtn.addEventListener('click', toggleMusic);
+
+// ===== Slideshow =====
+let currentSlide = 0;
+let slideInterval = null;
+const totalSlides = 5;
+
+function goToSlide(idx) {
+  const slides = document.querySelectorAll('#photoFrame .slide');
+  const dots = document.querySelectorAll('#slideDots .slide-dot');
+  slides[currentSlide].classList.remove('active');
+  dots[currentSlide].classList.remove('active');
+  currentSlide = idx;
+  slides[currentSlide].classList.add('active');
+  dots[currentSlide].classList.add('active');
+}
+
+function nextSlide() {
+  goToSlide((currentSlide + 1) % totalSlides);
+}
+
+function startSlideshow() {
+  if (slideInterval) clearInterval(slideInterval);
+  slideInterval = setInterval(nextSlide, 3500);
+}
+
+// Touch swipe on hero photo
+(function() {
+  let startX = 0;
+  const frame = document.getElementById('photoFrame');
+  frame.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, {passive: true});
+  frame.addEventListener('touchend', e => {
+    const diff = e.changedTouches[0].clientX - startX;
+    if (Math.abs(diff) > 40) {
+      if (diff < 0) goToSlide((currentSlide + 1) % totalSlides);
+      else goToSlide((currentSlide - 1 + totalSlides) % totalSlides);
+      startSlideshow();
+    }
+  }, {passive: true});
+})();
+
+// ===== Lightbox =====
+const galleryPhotos = [
+  'https://pskyu6c3.mule.page/photos/gallery1.jpg',
+  'https://pskyu6c3.mule.page/photos/gallery2.jpg',
+  'https://pskyu6c3.mule.page/photos/gallery3.jpg',
+  'https://pskyu6c3.mule.page/photos/gallery4.jpg',
+  'https://pskyu6c3.mule.page/photos/gallery5.jpg',
+  'https://pskyu6c3.mule.page/photos/gallery6.jpg'
+];
+
+document.querySelectorAll('.gallery-item').forEach((item, idx) => {
+  item.addEventListener('click', () => openLightbox(idx));
+});
+
+function openLightbox(idx) {
+  if (!galleryPhotos[idx]) return;
+  const lb = document.getElementById('lightbox');
+  document.getElementById('lightboxImg').src = galleryPhotos[idx];
+  lb.classList.add('show');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('show');
+}
+document.getElementById('lightbox').addEventListener('click', closeLightbox);
+
+// ===== Envelope open =====
+document.getElementById('envelope').addEventListener('click', openEnvelope);
+
+function openEnvelope() {
+  const env = document.getElementById('envelope');
+  const wrapper = document.getElementById('envelopeWrapper');
+  const invitation = document.getElementById('invitation');
+  env.classList.add('open');
+  // Auto-play music on envelope open
+  bgMusic.play().then(() => {
+    musicPlaying = true;
+    musicBtn.classList.add('playing');
+  }).catch(() => {});
+  setTimeout(() => {
+    wrapper.classList.add('opened');
+    invitation.classList.add('visible');
+    initAnimations();
+    createPetals();
+    startSlideshow();
+  }, 1600);
+}
+
+// ===== Scroll-triggered animations =====
+function initAnimations() {
+  const elements = document.querySelectorAll('[data-animate]');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('animate'), i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  elements.forEach(el => observer.observe(el));
+}
+
+// ===== Countdown =====
+function updateCountdown() {
+  const wedding = new Date('2026-05-30T10:00:00+08:00');
+  const now = new Date();
+  let diff = wedding - now;
+  if (diff < 0) diff = 0;
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  document.getElementById('cd-days').textContent = String(d).padStart(2, '0');
+  document.getElementById('cd-hours').textContent = String(h).padStart(2, '0');
+  document.getElementById('cd-mins').textContent = String(m).padStart(2, '0');
+  document.getElementById('cd-secs').textContent = String(s).padStart(2, '0');
+}
+updateCountdown();
+setInterval(updateCountdown, 1000);
+
+// ===== Floating petals =====
+function createPetals() {
+  const container = document.getElementById('petals');
+  const colors = ['#c5a05e', '#8b2500', '#dfc68a', '#d4956a'];
+  for (let i = 0; i < 12; i++) {
+    const petal = document.createElement('div');
+    petal.className = 'petal';
+    const size = 6 + Math.random() * 8;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    petal.style.cssText = `
+      left: ${Math.random() * 100}%;
+      width: ${size}px; height: ${size}px;
+      background: ${color};
+      border-radius: ${Math.random() > 0.5 ? '50% 0 50% 50%' : '50%'};
+      animation-duration: ${8 + Math.random() * 12}s;
+      animation-delay: ${Math.random() * 10}s;
+      opacity: 0;
+    `;
+    container.appendChild(petal);
+  }
+}
+</script>
+</body></html>
